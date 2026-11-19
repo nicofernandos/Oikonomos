@@ -1,6 +1,8 @@
+import { Public } from './auth/public.decorator.js';
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { DatabaseService } from './database/database.service.js';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly databaseService: DatabaseService) {}
@@ -13,7 +15,7 @@ export class HealthController {
       );
       return { status: 'ok', databaseTime: row.now };
     } catch {
-      throw new ServiceUnavailableException('Database is not available');
+      throw new ServiceUnavailableException('Database tidak tersedia');
     }
   }
 }

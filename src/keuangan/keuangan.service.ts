@@ -1,26 +1,78 @@
-import { Injectable } from '@nestjs/common';
-import { CreateKeuanganDto } from './dto/create-keuangan.dto.js';
-import { UpdateKeuanganDto } from './dto/update-keuangan.dto.js';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { AuthUser } from '../auth/user.js';
+import { KeuanganRepository } from './keuangan.repository.js';
+import * as dto from './dto/finance.dto.js';
 
 @Injectable()
 export class KeuanganService {
-  create(createKeuanganDto: CreateKeuanganDto) {
-    return 'This action adds a new keuangan';
+  private readonly requireApproval: boolean;
+  constructor(
+    @Inject(KeuanganRepository) private readonly repository: KeuanganRepository,
+    @Inject(ConfigService) config: ConfigService,
+  ) {
+    const value = config.get<unknown>('REQUIRE_MAJELIS_APPROVAL');
+    if (value !== undefined && value !== 'false' && value !== 'true')
+      throw new Error('REQUIRE_MAJELIS_APPROVAL harus true atau false');
+    this.requireApproval = value === 'true';
   }
-
-  findAll() {
-    return `This action returns all keuangan`;
+  private writer(user: AuthUser) {
+    if (user.peran !== 'bendahara')
+      throw new ForbiddenException('Hanya bendahara dapat menulis keuangan');
   }
-
-  findOne(id: number) {
-    return `This action returns a #${id} keuangan`;
+  create(user: AuthUser, body: unknown) {
+    this.writer(user);
+    return this.repository.create(dto.report(body).tanggal, user.id);
   }
-
-  update(id: number, updateKeuanganDto: UpdateKeuanganDto) {
-    return `This action updates a #${id} keuangan`;
+  list() {
+    return this.repository.list();
   }
-
-  remove(id: number) {
-    return `This action removes a #${id} keuangan`;
+  detail(id: string) {
+    return this.repository.detail(dto.reportId(id));
+  }
+  saldo(tanggal: unknown) {
+    return this.repository.saldo(dto.date(tanggal));
+  }
+  addTransaction(user: AuthUser, id: string, body: unknown) {
+    this.writer(user);
+    return this.repository.addTransaction(
+      dto.reportId(id),
+      dto.transaction(body),
+      user.id,
+    );
+  }
+  addOffering(user: AuthUser, id: string, body: unknown) {
+    this.writer(user);
+    return this.repository.addOffering(
+      dto.reportId(id),
+      dto.offering(body),
+      user.id,
+    );
+  }
+  reconcile(user: AuthUser, id: string, body: unknown) {
+    this.writer(user);
+    return this.repository.reconcile(
+      dto.reportId(id),
+      dto.reconciliation(body),
+      user.id,
+    );
+  }
+  lock(user: AuthUser, id: string, body: unknown) {
+    if (
+      this.requireApproval
+        ? user.peran !== 'majelis'
+        : user.peran !== 'bendahara'
+    )
+      throw new ForbiddenException(
+        this.requireApproval
+          ? 'Penguncian memerlukan persetujuan majelis'
+          : 'Hanya bendahara dapat mengunci laporan',
+      );
+    dto.object(body ?? {}, []);
+    return this.repository.lock(
+      dto.reportId(id),
+      user.id,
+      this.requireApproval,
+    );
   }
 }

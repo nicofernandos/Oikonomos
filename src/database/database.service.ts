@@ -5,7 +5,8 @@ import type { PoolClient, QueryResultRow } from 'pg';
 
 const { Pool, types } = pg;
 
-types.setTypeParser(20, (v: string) => parseInt(v, 10));
+// BIGINT uang tetap string desimal agar tidak dibulatkan oleh JavaScript.
+types.setTypeParser(20, (v: string) => v);
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
@@ -25,10 +26,16 @@ export class DatabaseService implements OnModuleDestroy {
     return res.rows;
   }
 
-  async withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  async withTransaction<T>(fn: (client: PoolClient) => Promise<T>, actorId?: number): Promise<T> {
+    if (actorId !== undefined && (!Number.isSafeInteger(actorId) || actorId < 1 || actorId > 2147483647)) {
+      throw new RangeError('ID pelaku tidak valid');
+    }
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      if (actorId !== undefined) {
+        await client.query("SELECT set_config('oikonomos.actor_id', $1, true)", [String(actorId)]);
+      }
       const result = await fn(client);
       await client.query('COMMIT');
       return result;

@@ -1,34 +1,74 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
+import type { AuthRequest } from '../auth/jwt-auth.guard.js';
 import { KeuanganService } from './keuangan.service.js';
-import { CreateKeuanganDto } from './dto/create-keuangan.dto.js';
-import { UpdateKeuanganDto } from './dto/update-keuangan.dto.js';
 
-@Controller('keuangan')
+@Controller('laporan')
 export class KeuanganController {
-  constructor(private readonly keuanganService: KeuanganService) {}
-
-  @Post()
-  create(@Body() createKeuanganDto: CreateKeuanganDto) {
-    return this.keuanganService.create(createKeuanganDto);
-  }
-
+  constructor(
+    @Inject(KeuanganService) private readonly service: KeuanganService,
+  ) {}
   @Get()
-  findAll() {
-    return this.keuanganService.findAll();
+  list() {
+    return this.service.list();
   }
-
+  @Post()
+  create(@Req() req: AuthRequest, @Body() body: unknown) {
+    return this.service.create(req.user, body);
+  }
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.keuanganService.findOne(+id);
+  detail(@Param('id') id: string) {
+    return this.service.detail(id);
   }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateKeuanganDto: UpdateKeuanganDto) {
-    return this.keuanganService.update(+id, updateKeuanganDto);
+  @Post(':id/transaksi')
+  transaction(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.service.addTransaction(req.user, id, body);
   }
+  @Post(':id/persembahan')
+  offering(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.service.addOffering(req.user, id, body);
+  }
+  @Post(':id/rekonsiliasi')
+  reconcile(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.service.reconcile(req.user, id, body);
+  }
+  @Post(':id/kunci')
+  lock(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.service.lock(req.user, id, body);
+  }
+}
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.keuanganService.remove(+id);
+@Controller('saldo')
+export class SaldoController {
+  constructor(
+    @Inject(KeuanganService) private readonly service: KeuanganService,
+  ) {}
+  @Get()
+  saldo(@Query('tanggal') tanggal: unknown) {
+    return this.service.saldo(tanggal);
   }
 }

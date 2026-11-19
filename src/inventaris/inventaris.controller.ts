@@ -1,34 +1,100 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
+import type { AuthRequest } from '../auth/jwt-auth.guard.js';
 import { InventarisService } from './inventaris.service.js';
-import { CreateInventarisDto } from './dto/create-inventaris.dto.js';
-import { UpdateInventarisDto } from './dto/update-inventaris.dto.js';
 
 @Controller('inventaris')
 export class InventarisController {
-  constructor(private readonly inventarisService: InventarisService) {}
+  constructor(
+    @Inject(InventarisService) private readonly inventarisService: InventarisService,
+  ) {}
 
   @Post()
-  create(@Body() createInventarisDto: CreateInventarisDto) {
-    return this.inventarisService.create(createInventarisDto);
+  create(@Req() req: AuthRequest, @Body() body: unknown) {
+    return this.inventarisService.create(req.user, body);
   }
 
   @Get()
-  findAll() {
-    return this.inventarisService.findAll();
+  findAll(@Req() req: AuthRequest) {
+    return this.inventarisService.findAll(req.user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.inventarisService.findOne(+id);
+  findOne(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.inventarisService.findOne(req.user, id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInventarisDto: UpdateInventarisDto) {
-    return this.inventarisService.update(+id, updateInventarisDto);
+  update(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.update(req.user, id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.inventarisService.remove(+id);
+  remove(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.remove(req.user, id, body);
+  }
+
+  @Post(':id/pulihkan')
+  restore(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.restore(req.user, id, body);
+  }
+
+  @Get(':id/riwayat-kondisi')
+  history(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.inventarisService.history(req.user, id);
+  }
+
+  @Post(':id/kondisi')
+  changeCondition(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.changeCondition(req.user, id, body);
+  }
+
+  @Get(':id/peminjaman')
+  loans(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.inventarisService.loans(req.user, id);
+  }
+
+  @Post(':id/peminjaman')
+  borrow(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.borrow(req.user, id, body);
+  }
+
+  @Post(':id/peminjaman/:loanId/kembali')
+  returnLoan(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Param('loanId') loanId: string,
+    @Body() body: unknown,
+  ) {
+    return this.inventarisService.returnLoan(req.user, id, loanId, body);
   }
 }
