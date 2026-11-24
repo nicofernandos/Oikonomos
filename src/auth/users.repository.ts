@@ -25,6 +25,14 @@ export class UsersRepository {
     return rows.map(publicUser);
   }
 
+  async detail(id: number) {
+    const [row] = await this.db.query<AuthUser>(
+      'SELECT id, username, nama, peran, aktif FROM users WHERE id = $1 AND is_deleted = false', [id],
+    );
+    if (!row) throw new NotFoundException('Pengguna tidak ditemukan');
+    return publicUser(row);
+  }
+
   async update(actor: AuthUser, id: number, input: UpdateUserDto) {
     return this.db.withTransaction(async (client) => {
       const { rows: [row] } = await client.query<AuthUser>(

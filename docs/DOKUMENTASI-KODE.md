@@ -44,6 +44,7 @@ Rute relatif terhadap `/api`:
 | POST | `/auth/users` | Alias pembuatan pengguna oleh admin |
 | PATCH | `/auth/password` | Mengganti password sendiri |
 | GET | `/users` | Daftar pengguna, admin |
+| GET | `/users/:id` | Detail pengguna, admin; tidak menampilkan password/hash |
 | POST | `/users` | Membuat pengguna, admin |
 | PATCH | `/users/:id` | Memperbarui pengguna, admin |
 | POST | `/users/:id/reset-password` | Reset password oleh admin, status sukses 200 |

@@ -169,6 +169,46 @@ describe('Auth API', () => {
     await request(app.getHttpServer()).get('/api/users').expect(401);
   });
 
+  it('gets a sanitized account by ID for an admin', async () => {
+    const target = { ...user, id: 2, username: 'bendahara', peran: 'bendahara' };
+    const token = await jwt.signAsync({ sub: 1 });
+    db.query.mockResolvedValueOnce([user]).mockResolvedValueOnce([{ ...target, password_hash: hash }]);
+    const response = await request(app.getHttpServer()).get('/api/users/2')
+      .set('Authorization', `Bearer ${token}`).expect(200);
+    expect(response.body).toEqual(target);
+    expect(db.query.mock.calls[1][1]).toEqual([2]);
+    expect(db.query.mock.calls[1][0]).toMatch(/WHERE id = \$1 AND is_deleted = false/);
+    expect(db.query.mock.calls[1][0]).not.toContain('password_hash');
+  });
+
+  it('requires authentication and admin access to get an account by ID', async () => {
+    await request(app.getHttpServer()).get('/api/users/2').expect(401);
+    expect(db.query).not.toHaveBeenCalled();
+    const token = await jwt.signAsync({ sub: 1 });
+    for (const peran of ['bendahara', 'majelis']) {
+      db.query.mockReset().mockResolvedValue([{ ...user, peran }]);
+      await request(app.getHttpServer()).get('/api/users/2').set('Authorization', `Bearer ${token}`).expect(403);
+      expect(db.query).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('returns not found for an unknown account detail', async () => {
+    const token = await jwt.signAsync({ sub: 1 });
+    db.query.mockResolvedValueOnce([user]).mockResolvedValueOnce([]);
+    const response = await request(app.getHttpServer()).get('/api/users/999')
+      .set('Authorization', `Bearer ${token}`).expect(404);
+    expect(response.body.message).toBe('Pengguna tidak ditemukan');
+  });
+
+  it('lets admins inspect inactive account details', async () => {
+    const token = await jwt.signAsync({ sub: 1 });
+    const target = { ...user, id: 2, aktif: false };
+    db.query.mockResolvedValueOnce([user]).mockResolvedValueOnce([target]);
+    const response = await request(app.getHttpServer()).get('/api/users/2')
+      .set('Authorization', `Bearer ${token}`).expect(200);
+    expect(response.body).toEqual(target);
+  });
+
   it('updates account name, role and active status atomically with a private audit', async () => {
     const token = await jwt.signAsync({ sub: 1 });
     const updated = { ...user, id: 2, nama: 'New Name', peran: 'bendahara', aktif: false };
@@ -295,6 +335,7 @@ describe('Auth API', () => {
     db.query.mockResolvedValue([user]);
     const token = await jwt.signAsync({ sub: 1 });
     await request(app.getHttpServer()).patch(`/api/users/${encodeURIComponent(id)}`).set('Authorization', `Bearer ${token}`).send({ aktif: false }).expect(400);
+    await request(app.getHttpServer()).get(`/api/users/${encodeURIComponent(id)}`).set('Authorization', `Bearer ${token}`).expect(400);
     await request(app.getHttpServer()).post(`/api/users/${encodeURIComponent(id)}/reset-password`).set('Authorization', `Bearer ${token}`).send({ password: '1234567890' }).expect(400);
     expect(db.withTransaction).not.toHaveBeenCalled();
   });

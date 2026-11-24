@@ -58,6 +58,12 @@ export class AuthService {
     return this.users.list();
   }
 
+  async getUser(actor: AuthUser, id: number) {
+    this.requireAdmin(actor);
+    this.validateUserId(id);
+    return this.users.detail(id);
+  }
+
   async updateUser(actor: AuthUser, id: number, dto: UpdateUserDto) {
     this.requireAdmin(actor);
     this.validateUserId(id);

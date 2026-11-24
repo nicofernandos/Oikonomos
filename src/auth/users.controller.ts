@@ -23,6 +23,12 @@ export class UsersController {
     return this.auth.listUsers(request.user);
   }
 
+  @Get(':id')
+  // Preserve raw IDs until canonical validation, as on the write routes.
+  detail(@Req() request: AuthRequest, @Param('id', userIdPipe) id: unknown) {
+    return this.auth.getUser(request.user, id as number);
+  }
+
   @Patch(':id')
   // Keep the raw parameter: global ValidationPipe must not coerce aliases before userIdPipe.
   update(@Req() request: AuthRequest, @Param('id', userIdPipe) id: unknown, @Body() dto: UpdateUserDto) {

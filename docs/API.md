@@ -10,6 +10,7 @@ Semua endpoint memerlukan `Authorization: Bearer <token>`, kecuali `POST /api/au
 - `GET /api/auth/me`: profil pengguna aktif tanpa hash password.
 - `PATCH /api/auth/password`: `{ "currentPassword": "...", "newPassword": "..." }`.
 - `GET /api/users`: daftar akun, hanya admin.
+- `GET /api/users/:id`: detail akun berdasarkan ID, hanya admin; akun tidak ditemukan atau soft-deleted menghasilkan 404. Respons tanpa password/hash.
 - `POST /api/users`: `{ "username": "...", "password": "...", "nama": "...", "peran": "admin|bendahara|majelis" }`, hanya admin.
 - `PATCH /api/users/:id`: perubahan nama, peran, atau status `aktif`, hanya admin.
 - `POST /api/users/:id/reset-password`: `{ "password": "..." }`, hanya admin.

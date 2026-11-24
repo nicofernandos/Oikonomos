@@ -21,7 +21,7 @@ const password = 'matrix-password-123';
 const expectedRoutes = [
   'GET /api', 'GET /api/health', 'POST /api/auth/login', 'GET /api/auth/me',
   'POST /api/auth/users', 'PATCH /api/auth/password', 'GET /api/users', 'POST /api/users',
-  'PATCH /api/users/:id', 'POST /api/users/:id/reset-password', 'GET /api/laporan',
+  'GET /api/users/:id', 'PATCH /api/users/:id', 'POST /api/users/:id/reset-password', 'GET /api/laporan',
   'POST /api/laporan', 'GET /api/laporan/:id', 'POST /api/laporan/:id/transaksi',
   'POST /api/laporan/:id/persembahan', 'POST /api/laporan/:id/rekonsiliasi',
   'POST /api/laporan/:id/kunci', 'GET /api/saldo',
@@ -31,7 +31,7 @@ const expectedRoutes = [
   'GET /api/inventaris/:id/riwayat-kondisi', 'GET /api/inventaris/:id/peminjaman',
   'POST /api/inventaris/:id/peminjaman', 'POST /api/inventaris/:id/peminjaman/:loanId/kembali',
 ].sort();
-const adminOnly = new Set(['GET /api/users', 'POST /api/users', 'POST /api/auth/users', 'PATCH /api/users/:id', 'POST /api/users/:id/reset-password', ...expectedRoutes.filter((route) => route.includes('/api/inventaris') && !route.startsWith('GET '))]);
+const adminOnly = new Set(['GET /api/users', 'GET /api/users/:id', 'POST /api/users', 'POST /api/auth/users', 'PATCH /api/users/:id', 'POST /api/users/:id/reset-password', ...expectedRoutes.filter((route) => route.includes('/api/inventaris') && !route.startsWith('GET '))]);
 const treasurerOnly = new Set(['POST /api/laporan', 'POST /api/laporan/:id/transaksi', 'POST /api/laporan/:id/persembahan', 'POST /api/laporan/:id/rekonsiliasi', 'POST /api/laporan/:id/kunci']);
 const publicRoutes = new Set(['GET /api/health', 'POST /api/auth/login']);
 
@@ -157,6 +157,8 @@ suite('Debug matrix semua route AppModule dengan PostgreSQL asli', () => {
     targetUserId = user.body.id;
     await happy('post', '/api/auth/users', 201, 'admin', { username: 'matrix_alias', password, nama: 'Matrix Alias', peran: 'bendahara' });
     await happy('get', '/api/users', 200, 'admin');
+    const userDetail = await happy('get', `/api/users/${targetUserId}`, 200, 'admin', undefined, 'GET /api/users/:id');
+    expect(userDetail.body).toEqual(user.body);
     await happy('patch', `/api/users/${targetUserId}`, 200, 'admin', { nama: 'Matrix Renamed' }, 'PATCH /api/users/:id');
     await happy('post', `/api/users/${targetUserId}/reset-password`, 200, 'admin', { password: 'matrix-replacement-123' }, 'POST /api/users/:id/reset-password');
     await happy('patch', '/api/auth/password', 200, 'majelis', { currentPassword: password, newPassword: 'matrix-replacement-123' });

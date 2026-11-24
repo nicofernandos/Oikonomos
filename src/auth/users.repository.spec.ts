@@ -52,3 +52,9 @@ it('omits soft-deleted users from the list while preserving the public shape', a
   await expect(repository.list()).resolves.toEqual([actor]);
   expect(db.query.mock.calls[0][0]).toMatch(/WHERE is_deleted\s*=\s*false/i);
 });
+
+it('treats a soft-deleted account detail as not found', async () => {
+  db.query.mockImplementation(async (sql) => /is_deleted\s*=\s*false/i.test(sql) ? [] : [target]);
+  await expect(repository.detail(target.id)).rejects.toThrow('Pengguna tidak ditemukan');
+  expect(db.query).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('WHERE id = $1 AND is_deleted = false'), [target.id]);
+});
